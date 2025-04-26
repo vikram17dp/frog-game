@@ -14,6 +14,7 @@ interface FrogCharacterProps {
 export default function FrogCharacter({ position, isJumping, isFalling, rageLevel }: FrogCharacterProps) {
   const [facingDirection, setFacingDirection] = useState<"left" | "right">("right")
   const [lastX, setLastX] = useState(position.x)
+  const [isBlinking, setIsBlinking] = useState(false)
 
   // Update facing direction based on movement
   useEffect(() => {
@@ -26,6 +27,18 @@ export default function FrogCharacter({ position, isJumping, isFalling, rageLeve
       setLastX(position.x)
     }
   }, [position.x, lastX])
+
+  // Random blinking effect
+  useEffect(() => {
+    const blinkInterval = setInterval(() => {
+      if (Math.random() > 0.7) {
+        setIsBlinking(true)
+        setTimeout(() => setIsBlinking(false), 150)
+      }
+    }, 2000)
+
+    return () => clearInterval(blinkInterval)
+  }, [])
 
   return (
     <div
@@ -52,12 +65,20 @@ export default function FrogCharacter({ position, isJumping, isFalling, rageLeve
         {/* Frog eyes */}
         <div className="absolute top-1 left-1 w-3 h-3 bg-white rounded-full">
           <div
-            className={cn("absolute top-0.5 left-0.5 w-2 h-2 rounded-full", rageLevel < 50 ? "bg-black" : "bg-red-600")}
+            className={cn(
+              "absolute top-0.5 left-0.5 w-2 h-2 rounded-full", 
+              rageLevel < 50 ? "bg-black" : "bg-red-600",
+              isBlinking ? "h-0.5" : ""
+            )}
           ></div>
         </div>
         <div className="absolute top-1 right-1 w-3 h-3 bg-white rounded-full">
           <div
-            className={cn("absolute top-0.5 left-0.5 w-2 h-2 rounded-full", rageLevel < 50 ? "bg-black" : "bg-red-600")}
+            className={cn(
+              "absolute top-0.5 left-0.5 w-2 h-2 rounded-full", 
+              rageLevel < 50 ? "bg-black" : "bg-red-600",
+              isBlinking ? "h-0.5" : ""
+            )}
           ></div>
         </div>
 
@@ -66,15 +87,30 @@ export default function FrogCharacter({ position, isJumping, isFalling, rageLeve
           className={cn(
             "absolute bottom-1 left-3 w-6 h-1 rounded-full",
             rageLevel < 50 ? "bg-green-700" : "bg-red-800",
+            rageLevel > 80 && !isJumping ? "h-2" : "", // Open mouth when very angry
           )}
         ></div>
 
         {/* Angry eyebrows when rage level is high */}
         {rageLevel >= 50 && (
           <>
-            <div className="absolute top-0 left-0.5 w-3 h-1 bg-red-800 rotate-[-30deg]"></div>
-            <div className="absolute top-0 right-0.5 w-3 h-1 bg-red-800 rotate-[30deg]"></div>
+            <div className={cn(
+              "absolute top-0 left-0.5 w-3 h-1 bg-red-800 rotate-[-30deg]",
+              rageLevel > 80 ? "w-4" : ""
+            )}></div>
+            <div className={cn(
+              "absolute top-0 right-0.5 w-3 h-1 bg-red-800 rotate-[30deg]",
+              rageLevel > 80 ? "w-4" : ""
+            )}></div>
           </>
+        )}
+        
+        {/* Sweat drops when rage level is high */}
+        {rageLevel > 70 && (
+          <div className="absolute -right-1 top-2 w-1.5 h-3 bg-blue-300 rounded-full"></div>
+        )}
+        {rageLevel > 85 && (
+          <div className="absolute -left-1 top-2 w-1.5 h-3 bg-blue-300 rounded-full"></div>
         )}
       </div>
 
@@ -93,6 +129,11 @@ export default function FrogCharacter({ position, isJumping, isFalling, rageLeve
           isJumping ? "rotate-[30deg]" : "",
         )}
       ></div>
+      
+      {/* Jump effect */}
+      {isJumping && (
+        <div className="absolute -bottom-4 left-4 w-8 h-2 bg-white/30 rounded-full"></div>
+      )}
     </div>
   )
 }

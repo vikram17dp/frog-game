@@ -146,16 +146,27 @@ export default function FrogJumpGame() {
         setRageLevel((prev) => Math.min(prev + 20, 100))
 
         // Show rage toast
-        if (rageLevel > 50) {
-          toast({
-            title: "RIBBIT!!! 🤬",
-            description: "Your frog is getting ANGRY!",
-            variant: "destructive",
-          })
-        }
+        const rageMessages = [
+          "RIBBIT!!! 🤬",
+          "Your frog is FURIOUS! 😡",
+          "That's it! I'm hopping mad! 🐸",
+          "Not again! RIBBIT! 🔥",
+          "This frog is about to EXPLODE! 💥"
+        ]
+        
+        const randomMessage = rageMessages[Math.floor(Math.random() * rageMessages.length)]
+        
+        toast({
+          title: randomMessage,
+          description: rageLevel > 80 ? "Your frog is about to RAGE QUIT!" : "Your frog is getting ANGRY!",
+          variant: "destructive",
+          duration: 3000,
+        })
 
-        // Reset frog position
-        setFrogPosition({ x: 50, y: 300 })
+        // Reset frog position to the top of the screen with random x position
+        // This creates an infinite game where the frog always has a chance to continue
+        const randomX = Math.random() * (gameWidth - frogWidth)
+        setFrogPosition({ x: randomX, y: 0 })
         setFrogVelocity({ x: 0, y: 0 })
 
         // End game if rage meter is full
@@ -165,11 +176,21 @@ export default function FrogJumpGame() {
         }
       }
 
-      // Check if frog went off the sides
+      // Check if frog went off the sides - implement proper infinite wrapping
       if (frogPosition.x < -frogWidth) {
         setFrogPosition((prev) => ({ ...prev, x: gameWidth }))
+        toast({
+          title: "Wrapped Around!",
+          description: "Your frog teleported to the other side!",
+          duration: 2000,
+        })
       } else if (frogPosition.x > gameWidth) {
-        setFrogPosition((prev) => ({ ...prev, x: -frogWidth }))
+        setFrogPosition((prev) => ({ ...prev, x: -frogWidth / 2 }))
+        toast({
+          title: "Wrapped Around!",
+          description: "Your frog teleported to the other side!",
+          duration: 2000,
+        })
       }
 
       // Update score based on height
@@ -187,6 +208,87 @@ export default function FrogJumpGame() {
       cancelAnimationFrame(animationFrameId)
     }
   }, [gameState, frogPosition, frogVelocity, platforms, score, rageLevel, gameHeight, gameWidth, toast])
+
+  // Generate platforms dynamically as the player moves up
+  useEffect(() => {
+    if (gameState !== "playing") return
+
+    // Check if we need to generate more platforms
+    const highestPlatform = platforms.reduce((highest, platform) => 
+      platform.y < highest ? platform.y : highest, gameHeight)
+    
+    if (highestPlatform > 0) {
+      // Generate new platforms above the current view
+      const newPlatforms = [...platforms]
+      
+      // Remove platforms that are too far below
+      const filteredPlatforms = newPlatforms.filter(p => p.y < gameHeight + 100)
+      
+      // Add new platforms above
+      const numNewPlatforms = 5
+      const platformWidth = 80 + Math.random() * 40
+      
+      for (let i = 0; i < numNewPlatforms; i++) {
+        const x = Math.random() * (gameWidth - platformWidth)
+        const y = highestPlatform - (i + 1) * (80 + Math.random() * 40)
+        
+        filteredPlatforms.push({
+          x,
+          y,
+          width: platformWidth,
+          height: 20
+        })
+      }
+      
+      setPlatforms(filteredPlatforms)
+      
+      // Show toast for new platforms occasionally
+      if (Math.random() > 0.7) {
+        toast({
+          title: "New platforms appeared!",
+          description: "Keep climbing higher!",
+          duration: 2000,
+        })
+      }
+    }
+  }, [frogPosition.y, platforms, gameState, gameWidth, gameHeight, toast])
+
+  // Celebrate achievements
+  useEffect(() => {
+    if (gameState !== "playing") return
+    
+    // Celebrate score milestones
+    const milestones = [25, 50, 100, 150, 200, 300, 500]
+    
+    if (milestones.includes(score) && score > 0) {
+      toast({
+        title: `Amazing! Score: ${score}`,
+        description: "You're getting better at this!",
+        variant: "default",
+        duration: 3000,
+      })
+      
+      // Reduce rage slightly on milestone achievements
+      if (rageLevel > 20) {
+        setRageLevel(prev => Math.max(prev - 10, 0))
+        toast({
+          title: "Frog calming down...",
+          description: "Your achievement reduced the rage!",
+          duration: 2000,
+        })
+      }
+    }
+    
+    // New high score celebration
+    if (score > highScore && highScore > 0) {
+      toast({
+        title: "NEW HIGH SCORE!",
+        description: `You beat your previous record of ${highScore}!`,
+        variant: "default",
+        duration: 4000,
+      })
+    }
+  }, [score, highScore, gameState, rageLevel, toast])
 
   // Handle jump
   const handleJump = (power = 1, direction = 0) => {
